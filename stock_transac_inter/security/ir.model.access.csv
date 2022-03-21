@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_stock_transac_inter_stock_transac_inter,stock_transac_inter.stock_transac_inter,model_stock_transac_inter_stock_transac_inter,base.group_user,1,1,1,1
