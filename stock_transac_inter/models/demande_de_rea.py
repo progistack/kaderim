@@ -4,17 +4,6 @@ from odoo.exceptions import UserError
 PROCUREMENT_PRIORITIES = [('0', 'Normal'), ('1', 'Urgent')]
 
 
-class PickingType(models.Model):
-    _inherit = "stock.picking.type"
-
-    code = fields.Selection([('incoming', 'Receipt'), ('outgoing', 'Delivery'), ('internal', 'Internal Transfer'), ('external', 'Transfert Inter-Entreprise')],
-                            'Type of Operation', required=True)
-    default_location_dest_id = fields.Many2one(
-        'stock.location', 'Default Destination Location',
-        check_company=False,
-        help="This is the default destination location when you create a picking manually with this operation type. It is possible however to change it or that the routes put another location. If it is empty, it will check for the customer location on the partner. ")
-
-
 class DemandeType(models.Model):
     _name = "demande.type"
     _description = "Type de Demande"
@@ -132,13 +121,9 @@ class Demande(models.Model):
                                                                      ('code', '=', 'external'),
                                                                      ('default_location_dest_id.company_id', '=', company_id.id)
                                                                      ])
-            print("####################", get_picking_type[0])
-            print("####################", get_picking_type[0].default_location_src_id)
-            print("####################", get_picking_type[0].default_location_dest_id)
-
             transfert_obj = self.env["stock.picking"]
             pick = {
-                "picking_type_id": get_picking_type.id,
+                "picking_type_id": get_picking_type[0].id,
                 "location_id": get_picking_type[0].default_location_src_id.id,
                 "location_dest_id": get_picking_type[0].default_location_dest_id.id,
                 "move_ids_without_package": [

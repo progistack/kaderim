@@ -1,32 +1,27 @@
-# -*- coding: utf-8 -*-
-# Part of Odoo. See LICENSE file for full copyright and licensing details.
-
-import json
-import time
-from ast import literal_eval
-from datetime import date, timedelta
-from itertools import groupby
-from operator import attrgetter, itemgetter
-from collections import defaultdict
-
 from odoo import SUPERUSER_ID, _, api, fields, models
-from odoo.addons.stock.models.stock_move import PROCUREMENT_PRIORITIES
-from odoo.exceptions import UserError
-from odoo.osv import expression
-from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT, format_datetime
-from odoo.tools.float_utils import float_compare, float_is_zero, float_round
-from odoo.tools.misc import format_date
 
 
 class PickingType(models.Model):
     _inherit = "stock.picking.type"
 
-    code = fields.Selection([('incoming', 'Receipt'), ('outgoing', 'Delivery'), ('internal', 'Internal Transfer'), ('external', 'Transfert Inter-Entreprise')], 'Type of Operation', required=True)
+    code = fields.Selection([('incoming', 'Receipt'), ('outgoing', 'Delivery'), ('internal', 'Internal Transfer'), ('external', 'Transfert Inter-Entreprise')],
+                            'Type of Operation', required=True)
+    default_location_dest_id = fields.Many2one(
+        'stock.location', 'Default Destination Location',
+        check_company=False,
+        help="This is the default destination location when you create a picking manually with this operation type. It is possible however to change it or that the routes put another location. If it is empty, it will check for the customer location on the partner. ")
 
 
 class Picking(models.Model):
     _name = "stock.picking"
     _inherit = "stock.picking"
+
+    location_id = fields.Many2one(
+        'stock.location', "Source Location",
+        default=lambda self: self.env['stock.picking.type'].browse(
+            self._context.get('default_picking_type_id')).default_location_src_id,
+        check_company=False, readonly=True, required=True,
+        states={'draft': [('readonly', False)]})
 
     location_dest_id = fields.Many2one(
         'stock.location', "Destination Location",
@@ -48,24 +43,6 @@ class Picking(models.Model):
         return availible_domaines
 
     def action_confirm(self):
-        print("################################################################################################")
-        print(self.picking_type_id.code)
-        print(self.name)
-        print(self.origin)
-        print(self.note)
-        print(self.move_type)
-        print(self.state)
-        print(self.priority)
-        print(self.scheduled_date)
-        print(self.date_deadline)
-        print(self.date)
-        print(self.location_id)
-        print(self.location_dest_id)
-        print(self.move_lines)
-        print(self.move_ids_without_package)
-        print(self.company_id)
-        print("################################################################################################")
-
 
         self._check_company()
         print("**************************************")
@@ -73,15 +50,37 @@ class Picking(models.Model):
         print('+++++++++++++++++++++++++++++++++++++++++++++')
         # call `_action_confirm` on every draft move
         if self.picking_type_id.code == 'external':
-
-            print("################################################################################################")
-            print("################################################################################################")
-            print("################################################################################################")
-
+            for rec in self:
+                company_id = rec.company_id
+                get_picking_type = rec.env['stock.picking.type'].search(
+                    [('company_id', '=', rec.location_dest_id.company_id.id),
+                     ('default_location_dest_id', '=', rec.location_dest_id.id),
+                     ('code', '=', 'incoming')
+                     ])
+                incomming_obj = self.env["stock.picking"]
+                print("###################", get_picking_type, rec.location_dest_id.id)
+                pick = {
+                    "picking_type_id": get_picking_type[0].id,
+                    "location_dest_id": rec.location_dest_id.id,
+                    "location_id": rec.location_id.company_id.id,
+                    "partner_id": rec.location_id.company_id.id,
+                    "move_ids_without_package": [
+                        {
+                            'name': rec.name,
+                            "location_id": rec.location_id.company_id.id,
+                            "location_dest_id": rec.location_dest_id.id,
+                            'product_id': prod.product_id,
+                            'product_uom_qty': prod.product_uom_qty,
+                            'product_uom': prod.product_uom,
+                        } for prod in rec.move_ids_without_package
+                    ],
+                    "scheduled_date": rec.scheduled_date,
+                    "origin": rec.origin,
+                }
+                incomming_obj.create(pick)
         self.mapped('move_lines')\
         .filtered(lambda move: move.state == 'draft')\
         ._action_confirm()
-        print('----------------------------------------------------')
 
         # run scheduler for moves forecasted to not have enough in stock
         self.mapped('move_lines').filtered(lambda move: move.state not in ('draft', 'cancel', 'done'))._trigger_scheduler()
