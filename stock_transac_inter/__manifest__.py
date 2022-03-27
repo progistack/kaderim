@@ -25,6 +25,7 @@
     'data': [
         'security/demande_rea_security.xml',
         'security/ir.model.access.csv',
+        'views/res_company.xml',
         'views/demande_de_rea.xml',
         # 'views/views.xml',
         # 'views/templates.xml',

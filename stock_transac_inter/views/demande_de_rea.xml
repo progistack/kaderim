@@ -73,8 +73,8 @@
                 <form string="Transfer">
                 <header>
                     <button name="action_confirm" attrs="{'invisible': [('state', '!=', 'draft')]}" string="Confirmer" type="object" class="oe_highlight" groups="stock.group_stock_user" data-hotkey="x"/>
-                    <button name="action_assign" attrs="{'invisible': [('state', '!=', 'validate')]}" string="Programmer le Tranfert" type="object" class="oe_highlight" groups="stock.group_stock_manager"/>
-                    <button name="action_done" attrs="{'invisible': [('state', '!=', 'assigned')]}" string="Fait" type="object" class="oe_highlight" groups="stock.group_stock_manager" data-hotkey="v"/>
+                    <button name="action_assign" attrs="{'invisible': [('state', '!=', 'validate')]}" string="Programmer le Tranfert" type="object" class="oe_highlight" groups="stock_transac_inter.group_stock_general_manager"/>
+                    <button name="action_done" attrs="{'invisible': [('state', '!=', 'assigned')]}" string="Fait" type="object" class="oe_highlight" groups="stock_transac_inter.group_stock_general_manager" data-hotkey="v"/>
                     <button name="button_validate" attrs="{'invisible': [('state', 'in', ('cancel', 'validate','assigned', 'done', 'draft'))]}" string="Validate" type="object" class="oe_highlight" groups="stock.group_stock_manager" data-hotkey="v"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,assigned,validate,done" />
                     <button name="action_cancel" attrs="{'invisible': [('state', 'not in', ('confirmed','validate'))]}" string="Cancel" groups="base.group_user" type="object" data-hotkey="z"/>
