@@ -131,7 +131,7 @@ class Demande(models.Model):
                         'name': rec.name,
                         "location_id": get_picking_type[0].default_location_src_id.id,
                         "location_dest_id": get_picking_type[0].default_location_dest_id.id,
-                        'product_id' : prod.product_id,
+                        'product_id': prod.product_id,
                         'product_uom_qty': prod.quantite,
                         'product_uom': prod.product_uom,
                     } for prod in rec.move_lines

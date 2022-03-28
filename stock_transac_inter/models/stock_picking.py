@@ -29,6 +29,10 @@ class Picking(models.Model):
             self._context.get('default_picking_type_id')).default_location_dest_id,
         check_company=False, readonly=True, required=True,
         states={'draft': [('readonly', False)]})
+    partner_id = fields.Many2one(
+        'res.partner', 'Contact',
+        check_company=False,
+        states={'done': [('readonly', True)], 'cancel': [('readonly', True)]})
 
     @api.onchange('picking_type_id')
     def _onchange_picking_type_change_destination(self):
@@ -58,17 +62,18 @@ class Picking(models.Model):
                      ('code', '=', 'incoming')
                      ])
                 incomming_obj = self.env["stock.picking"]
-                print("###################", get_picking_type, rec.location_dest_id.id)
                 pick = {
                     "picking_type_id": get_picking_type[0].id,
                     "location_dest_id": rec.location_dest_id.id,
-                    "location_id": rec.location_id.company_id.id,
-                    "partner_id": rec.location_id.company_id.id,
+                    "location_id": rec.location_id.company_id.partner_id.id,
+                    "partner_id": rec.location_id.company_id.partner_id.id,
                     "move_ids_without_package": [
                         {
                             'name': rec.name,
-                            "location_id": rec.location_id.company_id.id,
+                            "location_id": rec.location_id.id,
+                            "company_id": rec.location_id.company_id.id,
                             "location_dest_id": rec.location_dest_id.id,
+                            "partner_id": rec.location_id.company_id.partner_id.id,
                             'product_id': prod.product_id,
                             'product_uom_qty': prod.product_uom_qty,
                             'product_uom': prod.product_uom,
@@ -77,7 +82,10 @@ class Picking(models.Model):
                     "scheduled_date": rec.scheduled_date,
                     "origin": rec.origin,
                 }
-                incomming_obj.create(pick)
+                incomming_obj = incomming_obj.create(pick)
+                incomming_obj.onchange_partner_id()
+                incomming_obj._onchange_picking_type()
+
         self.mapped('move_lines')\
         .filtered(lambda move: move.state == 'draft')\
         ._action_confirm()
