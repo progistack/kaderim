@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+    <record id="print_history_dashboard" model="ir.actions.report">
+        <field name="name">rapport de caisse</field>
+        <field name="model">history.dashboard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">dashboard_pos.history_dashboard_report</field>
+        <field name="report_file">dashboard_pos.history_dashboard_report</field>
+        <field name="print_report_name">'report du - %s' % (object.date)</field>
+        <field name="binding_model_id" ref="model_history_dashboard"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="history_dashboard_report" >
+            <t t-call="web.html_container">
+                <t t-foreach="docs" t-as="o">
+                    <t t-call="web.basic_layout">
+                        <div class="page" style="margin-top:-20px;">
+                            <div class="col-3 mb4">
+                                <img t-if="o.company_id.logo" t-att-src="image_data_uri(o.company_id.logo)" style="max-height: 45px;" alt="Logo"/>
+                            </div>
+                            <div class="text-center">
+                                RAPPORT DE CAISSE DU <span t-field="o.date"/>
+                            </div>
+                            <div class="oe_structure"/>
+                            <div class="row" style="margin-left:50px;">
+                                <div class="col-xs-8">
+                                    <table class="table table-bordered" style="border: 3px solid black !important;">
+
+                                        <thead>
+                                            <tr>
+                                                <th name="th_date">
+                                                    <span>Date</span>
+                                                </th>
+                                                <th name="th_nom">
+                                                    <span>Nom</span>
+                                                </th>
+                                                <th name="th_nbr">
+                                                    <span>Nombres panier</span>
+                                                </th>
+                                                <th name="th_ch_a">
+                                                    <span>Chiffre affaire</span>
+                                                </th>
+                                                <th name="th_subtotal">
+                                                    <span>panier moyen</span>
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><span t-field="o.sudo().date"/></td>
+                                                <td><span t-esc="o.sudo().config_id.name"/></td>
+                                                <td><span t-esc="o.sudo().order_number"/></td>
+                                                <td><span t-esc="o.sudo().amount_total"/></td>
+                                                <td><span t-esc="o.sudo().cart_moyen"/></td>
+                                            </tr>
+
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        </div>
+                    </t>
+                </t>
+            </t>
+    </template>
+</odoo>
