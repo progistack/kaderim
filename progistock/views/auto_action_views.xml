@@ -1,0 +1,13 @@
+<odoo>
+    <data>
+        <!-- actions opening views on models -->
+
+        <record model="ir.actions.act_window" id="menu_warehouse_config_auto_action">
+            <field name="res_model">ir.cron</field>
+            <field name="view_mode">tree,form,calendar</field>
+            <field name="context">{'search_default_all': 1}</field>
+            <field name="view_id" ref="base.ir_cron_view_tree"/>
+        </record>
+        <menuitem action="menu_warehouse_config_auto_action" id="menu_warehouse_config_auto" name="Actions automatisées" parent="stock.menu_stock_config_settings" groups="stock.group_stock_manager" sequence="15"/>
+    </data>
+</odoo>

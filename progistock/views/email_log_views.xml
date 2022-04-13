@@ -1,0 +1,43 @@
+<odoo>
+    <data>
+
+        <record id="inhrite_email_list" model="ir.ui.view">
+            <field name="name"> Email list</field>
+            <field name="model">mail.mail</field>
+            <field name="inherit_id" ref="mail.view_mail_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='subject']" position="after">
+                    <field name="product_mail_id"/>
+                </xpath>
+                <xpath expr="//field[@name='product_mail_id']" position="after">
+                    <field name="exp_date"/>
+                </xpath>
+                <xpath expr="//field[@name='exp_date']" position="after">
+                    <field name="qty_min"/>
+                </xpath>
+                <xpath expr="//field[@name='qty_min']" position="after">
+                    <field name="quantity"/>
+                </xpath>
+                <xpath expr="//field[@name='quantity']" position="after">
+                    <button name="action_product_forecast_report" type="object" icon="fa-area-chart" attrs="{'invisible': [('id', '=', False)]}"/>
+                </xpath>
+
+            </field>
+        </record>
+
+
+        <record model="ir.actions.act_window" id="menu_warehouse_config_email_log">
+            <field name="name">Emails</field>
+            <field name="res_model">mail.mail</field>
+            <field name="view_mode">tree,form</field>
+            <field name="context">{}</field>
+            <field name="domain">['|',('subject', '=', "Alerte date d'expiration"), ('subject', '=', 'Alerte quantité minimum')]</field>
+            <field name="search_view_id" ref="mail.view_mail_search"/>
+        </record>
+
+
+        <menuitem id="menu_warehouse_email" name="Alertes lots" action="menu_warehouse_config_email_log"
+                  parent="stock.menu_stock_inventory_control" sequence="300"/>
+
+    </data>
+</odoo>
