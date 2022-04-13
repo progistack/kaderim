@@ -1,0 +1,13 @@
+<odoo>
+    <record id="ir_cron_product_lot_qty" model="ir.cron">
+        <field name="name">Stock : Alerte quantité </field>
+        <field name="model_id" ref="model_stock_production_lot"/>
+        <field name="state">code</field>
+        <field name="code">model.check_lot_qty()</field>
+        <field name="interval_number">1</field>
+        <field name="nextcall" eval="(DateTime.now()).strftime('%Y-%m-%d 23:00:00')"/>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+    </record>
+</odoo>
