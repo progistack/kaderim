@@ -7,8 +7,6 @@ from datetime import timedelta
 class ProgisLot(models.Model):
     _inherit = "stock.production.lot"
 
-    #mail_id = fields.Many2one(comodel_name='mail.mail')
-
 
     def send_mail_nofresh(self, name, product, exp_date, email, qty):
         mail_obj = self.env['mail.mail']
@@ -24,14 +22,21 @@ class ProgisLot(models.Model):
         })
         return mail.send()
 
-
     def email_to(self):
 
-        emails = self.env['ir.cron'].search([])
+        groups = self.env['res.groups'].search([])
+        email_list = []
 
-        for email in emails:
-            if email.user_id.id == 2:
-                return email.user_id.email
+        for group in groups:
+            for i in group.users:
+                if group.category_id.name == "Stock":
+                    email_list.append(i.email)
+                else:
+                    pass
+
+        email_filter = list(set(email_list))
+
+        return email_filter
 
 
     def send_mail_fresh(self, name, product, exp_date, email, qty):
@@ -67,10 +72,12 @@ class ProgisLot(models.Model):
                 if lot.product_id.categ_id == False:
                     pass
                 elif lot.product_id.categ_id.fresh == False and convert_exp_date == convert_deadline:
-                    self.send_mail_nofresh(lot.name, lot.product_id, lot.expiration_date, self.email_to(), lot.product_qty)
+                    for email in self.email_to():
+                        self.send_mail_nofresh(lot.name, lot.product_id, lot.expiration_date, email, lot.product_qty)
 
                 elif lot.product_id.categ_id.fresh == True and convert_exp_date == convert_fresh_deadline:
-                    self.send_mail_fresh(lot.name, lot.product_id, lot.expiration_date, self.email_to(), lot.product_qty)
+                    for email in self.email_to():
+                        self.send_mail_fresh(lot.name, lot.product_id, lot.expiration_date, email, lot.product_qty)
 
 
 

@@ -1,7 +1,7 @@
 <odoo>
     <record id="ir_cron_product_lot_qty" model="ir.cron">
         <field name="name">Stock : Alerte quantité </field>
-        <field name="model_id" ref="model_stock_production_lot"/>
+        <field name="model_id" ref="model_stock_warehouse_orderpoint"/>
         <field name="state">code</field>
         <field name="code">model.check_lot_qty()</field>
         <field name="interval_number">1</field>
