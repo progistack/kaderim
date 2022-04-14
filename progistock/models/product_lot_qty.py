@@ -5,7 +5,11 @@ from odoo import fields, models
 
 
 class ProgisLotQty(models.Model):
-    _inherit = "stock.production.lot"
+    _inherit = 'stock.warehouse.orderpoint'
+    #_inherit = "stock.production.lot"
+
+    stock_id = fields.Many2one(comodel_name="stock.production.lot")
+
 
 
     def send_mail(self, product, qty, exp_date, email):
@@ -25,21 +29,28 @@ class ProgisLotQty(models.Model):
 
     def email_to(self):
 
-        emails = self.env['ir.cron'].search([])
+        groups = self.env['res.groups'].search([])
+        email_list = []
 
-        for email in emails:
-            if email.user_id.id == 2:
-                return email.user_id.email
+        for group in groups:
+            for i in group.users:
+                if group.category_id.name == "Stock":
+                    email_list.append(i.email)
+                else:
+                    pass
+
+        email_filter = list(set(email_list))
+
+        return email_filter
 
     def check_lot_qty(self):
         min_prods = self.env['stock.warehouse.orderpoint'].search([])
-        products = self.env['stock.production.lot'].search([])
 
-
-        for product in products:
-            for min_prod in  min_prods:
-                if product.product_id.qty_available <= min_prod.product_min_qty:
-                    self.send_mail(product.product_id, min_prod.product_min_qty, product.expiration_date, self.email_to())
+        for min_prod in  min_prods:
+            if min_prod.product_id.qty_available <= min_prod.product_min_qty:
+                print(min_prod.product_id.name,min_prod.product_min_qty)
+                for email in self.email_to():
+                   self.send_mail(min_prod.product_id, min_prod.product_min_qty, self.stock_id.expiration_date, email)
 
 
             
