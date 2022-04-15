@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- search -->
+        <record model="ir.ui.view" id="expirer_search_view">
+            <field name="name">Article Expiré Filtre</field>
+            <field name="model">stockage.expirer</field>
+            <field name="arch" type="xml">
+                <search>
+                    <!-- by group -->
+                    <group expand="1" string="Grouper par ...">
+                        <filter name="group_1" string="Article" domain="[]" context="{'group_by':'article_exp'}"/>
+                        <filter name="group_2" string="Cause" domain="[]" context="{'group_by':'cause_exp'}"/>
+                        <filter name="group_3" string="Date" domain="[]" context="{'group_by':'date_exp'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- explicit list view definition -->
+        <record model="ir.ui.view" id="expirer_list_view">
+            <field name="name">Article Expiré</field>
+            <field name="model">stockage.expirer</field>
+            <field name="arch" type="xml">
+                <tree decoration-danger="status_bar == 'retire'">
+                    <field name="reference" optional="show"/>
+                    <field name="date_exp" optional="show"/>
+                    <field name="company_id" optional="show"/>
+                    <field name="entrepot_id" optional="show"/>
+                    <field name="article_exp" optional="show"/>
+                    <field name="cause_exp" optional="show"/>
+                    <field name="quantite_exp" sum="Total d'articles expirés" optional="show"/>
+                    <field name="status_bar" decoration-danger="status_bar == 'retire'"
+                           decoration-info="status_bar == 'attente'" widget="badge" optional="show"/>
+                </tree>
+            </field>
+        </record>
+
+        <!-- explicit from view definition -->
+
+        <record model="ir.ui.view" id="expirer_form_view">
+            <field name="name">Formulaire d'article expiré</field>
+            <field name="model">stockage.expirer</field>
+            <field name="arch" type="xml">
+                <form edit="false">
+                    <header>
+                        <button name="message_succes" type="object" string="Confirmé" class="oe_highlight"
+                                attrs="{'invisible':[('status', '!=',True)]}"
+                                confirm="Etes-vous sure de vouloir retirer cet article de stock ?"
+                        />
+                        <field name="status_bar" widget="statusbar"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="reference" readonly="1"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <field name="status" invisible="1"/>
+                            <group>
+                                <field name="company_id"/>
+                            </group>
+                            <group>
+                                <field name="entrepot_id"/>
+                            </group>
+                        </group>
+                        <group>
+                            <group>
+                                <field name="article_exp"/>
+                                <field name="quantite_exp"/>
+                            </group>
+                            <group>
+                                <field name="cause_exp"/>
+                                <field name="date_exp"/>
+                            </group>
+                        </group>
+                        <div style="display:flex; align-items:center; justify-content: center; margin-top: 20px;">
+                            <h1>
+                                <span style="color:#71639e;">Compagnie :</span>
+                                <field name="nom_compagnie" readonly="1"/>
+                            </h1>
+                        </div>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- actions opening views on models -->
+        <record model="ir.actions.act_window" id="expirer_action_window">
+            <field name="name">Article Expiré</field>
+            <field name="res_model">stockage.expirer</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+
+
+        <menuitem id="menu_casse_expire"
+                  name="Cassé/Expiré"
+                  parent="stock.menu_stock_root"/>
+
+        <menuitem id="menu_expire"
+                  name="Expiré"
+                  parent="stockage.menu_casse_expire"
+                  action="expirer_action_window"/>
+
+    </data>
+</odoo>

@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_casser_user,CasserUser,model_stockage_casser,,1,1,1,1
+access_expirer_user,ExpirerUser,model_stockage_expirer,,1,1,1,1
+

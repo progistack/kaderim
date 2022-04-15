@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- Reference article cassé -->
+        <record id="ref_article_cas" model="ir.sequence">
+            <field name="name">Référence article cassé</field>
+            <field name="code">casser.reference</field>
+            <field name="prefix">CAS</field>
+            <field name="padding">5</field>
+            <field name="company_id" eval="False"/>
+        </record>
+
+    </data>
+</odoo>
