@@ -18,21 +18,9 @@
             <field name="category_id" ref="module_category_demande"/>
         </record>
 
-        <record id="group_demande_type_administration" model="res.groups">
-            <field name="name">Gestion des Types de Demandes</field>
-            <field name="category_id" ref="module_category_demande"/>
-        </record>
-
-
          <record model="ir.rule" id="stock_demande_rule">
             <field name="name">stock_demande multi-company</field>
             <field name="model_id" search="[('model','=','stock.demande')]" model="ir.model"/>
-            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
-        </record>
-
-         <record model="ir.rule" id="stock_demande_type_rule">
-            <field name="name">stock_demande_type multi-company</field>
-            <field name="model_id" search="[('model','=','demande.type')]" model="ir.model"/>
             <field name="domain_force">[('company_id', 'in', company_ids)]</field>
         </record>
 

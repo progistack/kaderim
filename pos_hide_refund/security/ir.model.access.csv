@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_pos_hide_refund_pos_hide_refund,pos_hide_refund.pos_hide_refund,model_pos_hide_refund_pos_hide_refund,base.group_user,1,1,1,1

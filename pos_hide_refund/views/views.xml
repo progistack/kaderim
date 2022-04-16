@@ -1,0 +1,60 @@
+<odoo>
+  <data>
+    <!-- explicit list view definition -->
+<!--
+    <record model="ir.ui.view" id="pos_hide_refund.list">
+      <field name="name">pos_hide_refund list</field>
+      <field name="model">pos_hide_refund.pos_hide_refund</field>
+      <field name="arch" type="xml">
+        <tree>
+          <field name="name"/>
+          <field name="value"/>
+          <field name="value2"/>
+        </tree>
+      </field>
+    </record>
+-->
+
+    <!-- actions opening views on models -->
+<!--
+    <record model="ir.actions.act_window" id="pos_hide_refund.action_window">
+      <field name="name">pos_hide_refund window</field>
+      <field name="res_model">pos_hide_refund.pos_hide_refund</field>
+      <field name="view_mode">tree,form</field>
+    </record>
+-->
+
+    <!-- server action to the one above -->
+<!--
+    <record model="ir.actions.server" id="pos_hide_refund.action_server">
+      <field name="name">pos_hide_refund server</field>
+      <field name="model_id" ref="model_pos_hide_refund_pos_hide_refund"/>
+      <field name="state">code</field>
+      <field name="code">
+        action = {
+          "type": "ir.actions.act_window",
+          "view_mode": "tree,form",
+          "res_model": model._name,
+        }
+      </field>
+    </record>
+-->
+
+    <!-- Top menu item -->
+<!--
+    <menuitem name="pos_hide_refund" id="pos_hide_refund.menu_root"/>
+-->
+    <!-- menu categories -->
+<!--
+    <menuitem name="Menu 1" id="pos_hide_refund.menu_1" parent="pos_hide_refund.menu_root"/>
+    <menuitem name="Menu 2" id="pos_hide_refund.menu_2" parent="pos_hide_refund.menu_root"/>
+-->
+    <!-- actions -->
+<!--
+    <menuitem name="List" id="pos_hide_refund.menu_1_list" parent="pos_hide_refund.menu_1"
+              action="pos_hide_refund.action_window"/>
+    <menuitem name="Server to list" id="pos_hide_refund" parent="pos_hide_refund.menu_2"
+              action="pos_hide_refund.action_server"/>
+-->
+  </data>
+</odoo>

@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+        <record id="view_picking_form_inherit_2" model="ir.ui.view">
+            <field name="name">stock.picking.type.form.inherit</field>
+            <field name="model">stock.picking.type</field>
+            <field name="inherit_id" ref="stock.view_picking_type_form"/>
+            <field name="arch" type="xml">
+                    <xpath expr="//sheet//group//group/field[@name='default_location_dest_id']" position="before">
+                        <field name="entreprise_de_destination_par_defaut"/>
+                    </xpath>
+            </field>
+        </record>
         <record model="ir.ui.view" id="stock_demande_calendar">
             <field name="name">stock.demande.calendar</field>
             <field name="model">stock.demande</field>
@@ -7,8 +17,6 @@
             <field name="arch" type="xml">
                 <calendar string="Calendar View" date_start="scheduled_date" color="company_id" event_limit="5">
                     <field name="company_id" filters="1"/>
-                    <field name="origin"/>
-                    <field name="demande_type_id"/>
                     <field name="state"/>
                 </calendar>
             </field>
@@ -57,8 +65,6 @@
                     <field name="scheduled_date" optional="show" widget="remaining_days" attrs="{'invisible':[('state', 'in', ('done', 'cancel'))]}"/>
                     <field name="date_deadline" optional="hide" widget="remaining_days" attrs="{'invisible':[('state', 'in', ('done', 'cancel'))]}"/>
                     <field name="date_done" string="Effective Date" optional="hide"/>
-                    <field name="origin" optional="show"/>
-                    <field name="demande_type_id" optional="hide"/>
                     <field name="company_id" groups="base.group_multi_company" optional="show"/>
                     <field name="state" optional="show" widget="badge" decoration-success="state == 'done'" decoration-info="state not in ('done', 'cancel', 'draft')" decoration-muted="state == 'draft'"/>
                 </tree>
@@ -83,13 +89,10 @@
                     <div class="oe_title">
                         <h1>
                             <field name="priority" widget="priority" class="mr-3"/>
-                            <field name="name" readonly="0" placeholder="Référence" required="1"/>
+                            <field name="name" placeholder="Référence" required="1"/>
                         </h1>
                     </div>
                     <group>
-                        <group>
-                            <field name="demande_type_id" readonly="0"/>
-                        </group>
                         <group>
                             <label for="scheduled_date"/>
                             <div class="o_row">
@@ -103,7 +106,6 @@
                                 decoration-danger="date_deadline and date_deadline &lt; current_date"
                                 decoration-bf="date_deadline and date_deadline &lt; current_date"/>
                             <field name="date_done" string="Effective Date" attrs="{'invisible': [('state', '!=', 'done')]}"/>
-                            <field name="origin" placeholder="e.g. PO0032"/>
 
 <!--                            <field name="owner_id" groups="stock.group_tracking_owner"-->
 <!--                                   attrs="{'invisible': [('picking_type_code', '!=', 'incoming')]}"/>-->
@@ -117,21 +119,33 @@
                                 <tree string="Stock Moves" editable="bottom">
                                     <field name="product_id" required="1"/>
                                     <field name="product_code" />
-                                    <field name="description_demande" string="Description"/>
+                                    <field name="quantite_en_stock" />
                                     <field name="date" optional="hide"/>
-                                    <field name="quantite" string="Demand"/>
+                                    <field name="quantite" sum="Nb Colis total"/>
                                     <field name="product_uom_category_id" invisible="1"/>
-                                    <field name="product_uom" string="Unité de Mesure"/>
+                                    <field name="company_id" invisible="1"/>
+                                    <field name="product_uom" string="Unité de Mesure" readonly="True"/>
+                                    <field name="incoming_qty"  />
+                                    <field name="qtc_totale" sum="QTE total"/>
+                                    <field name="product_pdv"/>
+                                    <field name="prix_total" sum="Prix Total"/>
                                     <field name="qty_done" optional="hide"/>
                                 </tree>
                                 <form string="Stock Moves">
                                     <group>
+                                        <field name="product_code" />
                                         <field name="product_id" required="1"/>
-                                        <field name="product_code"/>
-                                        <field name="description_demande" string="Description"/>
+                                        <field name="quantite_en_stock" />
+                                        <field name="date" optional="hide"/>
                                         <field name="quantite"/>
                                         <field name="product_uom_category_id" invisible="1"/>
-                                        <field name="product_uom"/>
+                                        <field name="company_id" invisible="1"/>
+                                        <field name="product_uom" string="Unité de Mesure"/>
+                                        <field name="incoming_qty" />
+                                        <field name="qtc_totale"/>
+                                        <field name="product_pdv"/>
+                                        <field name="prix_total"/>
+                                        <field name="qty_done" optional="hide"/>
                                     </group>
                                 </form>
                             </field>
@@ -160,8 +174,6 @@
             <field name="arch" type="xml">
                 <search string="Demandes">
                     <field name="name" string="Transfer"/>
-                    <field name="origin"/>
-                    <field name="demande_type_id"/>
                     <separator/>
                     <filter name="draft" string="Draft" domain="[('state', '=', 'draft')]" help="Draft Moves"/>
                     <filter name="waiting" string="Waiting" domain="[('state', 'in', ('confirmed', 'waiting'))]" help="Waiting Moves"/>
@@ -176,8 +188,6 @@
                     <group expand="0" string="Group By">
                         <filter string="Status" name="status" domain="[]" context="{'group_by': 'state'}"/>
                         <filter string="Scheduled Date" name="expected_date" domain="[]" context="{'group_by': 'scheduled_date'}"/>
-                        <filter string="Source Document" name="origin" domain="[]" context="{'group_by': 'origin'}"/>
-                        <filter string="Operation Type" name="demande_type" domain="[]" context="{'group_by': 'demande_type_id'}"/>
                     </group>
                 </search>
             </field>

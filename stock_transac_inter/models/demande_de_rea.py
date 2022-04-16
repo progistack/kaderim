@@ -4,26 +4,12 @@ from odoo.exceptions import UserError
 PROCUREMENT_PRIORITIES = [('0', 'Normal'), ('1', 'Urgent')]
 
 
-class DemandeType(models.Model):
-    _name = "demande.type"
-    _description = "Type de Demande"
-    _check_company_auto = True
-
-    name = fields.Char("Type d'Opération", required=True, translate=True)
-    code = fields.Selection([('reaprovsionnement', 'Réaprovisionnement'), ('Retour', 'Retour')], 'Type of Operation', required=True)
-    active = fields.Boolean('Active', default=True)
-    company_id = fields.Many2one(
-        'res.company', 'Company', required=True,
-        check_company=True,
-        readonly=True,
-        default=lambda s: s.env.company.id, index=True)
-
-
 class DemandeMoveLine(models.Model):
     _name = "demande.move.line"
     _description = "Demande"
     _rec_name = "product_id"
     _order = "demande_id asc, id"
+    _check_company_auto = True
 
     demande_id = fields.Many2one(
         'stock.demande', 'Demande', auto_join=True,
@@ -31,23 +17,62 @@ class DemandeMoveLine(models.Model):
         index=True,
         ondelete='cascade',
         help='The stock operation where the packing has been made')
-    product_id = fields.Many2one('product.product', 'Product', ondelete="cascade")
+    product_id = fields.Many2one('product.product',
+                                 'Product',
+                                 check_company=True,
+                                 store=True,
+                                 ondelete="cascade",
+                                 domain="[('type', '!=', 'service'), '|', ('company_id', '=', False), ('company_id', '=', company_id)]")
     product_code = fields.Char(
         related='product_id.code',
         readonly=True)
+    product_pdv = fields.Float('PDU TTC',
+        related='product_id.list_price',
+        readonly=True)
+    prix_total = fields.Float('TOTAL TTC', compute="_compte_total_ttc")
     quantite = fields.Float(
-        'Quantité', default=0.0, required=True, copy=False)
+        'Nombre de Colis', default=0.0, required=True, copy=False)
+    qtc_totale = fields.Float(
+        'QTE TOTALE', compute="_compte_total")
     qty_done = fields.Float('Done', default=0.0, digits='Product Unit of Measure', copy=False)
-    product_uom = fields.Many2one('uom.uom', "UoM", required=True, domain="[('category_id', '=', product_uom_category_id)]")
-    product_uom_category_id = fields.Many2one(related='product_id.uom_id.category_id')
+    product_uom = fields.Many2one('uom.uom', "Unité de Mesure", related='product_id.uom_po_id',  readonly=True)
+    quantite_en_stock = fields.Float(string="PCB en stock", compute='_compute_quantite_en_stock', readonly=True)
+    incoming_qty = fields.Float('PCB Avenir', index=True, compute='_compute_incoming_qty', readonly=True)
+    product_uom_category_id = fields.Many2one(related='product_id.uom_id.category_id', readonly=True)
     date = fields.Datetime('Date', default=fields.Datetime.now, required=True)
     reference = fields.Char(related='demande_id.name', store=True, related_sudo=False, readonly=False)
-    description_demande = fields.Text(string="Description")
     company_id = fields.Many2one(
         'res.company', 'Company', required=True,
         related='demande_id.company_id',
         readonly=True,
+        store=True,
         default=lambda s: s.env.company.id, index=True)
+
+    @api.depends('product_id', 'quantite')
+    def _compute_incoming_qty(self):
+        for move in self:
+            move.incoming_qty = move.quantite_en_stock + move.quantite
+
+    @api.depends('product_id', 'quantite')
+    def _compte_total_ttc(self):
+        for move in self:
+            move.prix_total = move.qtc_totale * move.product_pdv
+
+    @api.depends('product_id', 'quantite')
+    def _compte_total(self):
+        for move in self:
+            move.qtc_totale = move.quantite * move.product_uom.factor_inv
+
+    @api.depends('product_id')
+    def _compute_quantite_en_stock(self):
+        for move in self:
+            product = self.env['product.product'].search([('id', '=', move.product_id.id)])
+            move.quantite_en_stock = product.qty_available
+
+    def _compute_quantities(self):
+        res = self._compute_quantities_dict()
+        for template in self:
+            template.qty_available = res[template.id]['qty_available']
 
 
 class Demande(models.Model):
@@ -55,11 +80,8 @@ class Demande(models.Model):
 
     name = fields.Char(
         'Reference',
-        copy=False, index=True, readonly=True)
-    origin = fields.Char(
-        'Source Document', index=True,
-        states={'done': [('readonly', True)], 'cancel': [('readonly', True)]},
-        help="Numero de référence")
+        default='/',
+        readonly=True)
     note = fields.Html('Notes')
     state = fields.Selection([
         ('draft', 'Draft'),
@@ -93,12 +115,8 @@ class Demande(models.Model):
         help="Creation Date, usually the time of the order")
     date_done = fields.Datetime('Date of Transfer', copy=False, readonly=True,
                                 help="Date at which the transfer has been processed or cancelled.")
-    demande_type_id = fields.Many2one(
-        'demande.type', 'Operation Type',
-        check_company=True,
-        required=True, readonly=True)
     company_id = fields.Many2one(
-        'res.company', string='Company', related='demande_type_id.company_id',
+        'res.company', string='Company',
         store=True,
         default=lambda s: s.env.company.id, index=True,
         readonly=True)
@@ -111,35 +129,57 @@ class Demande(models.Model):
     move_lines = fields.One2many('demande.move.line', 'demande_id', string="Stock Moves")
 
     def action_confirm(self):
-        self.state = 'confirmed'
+        self.state = 'validate'
+        base = "BC/"
+        ir_sequence = self.env['ir.sequence']
+        for rec in self:
+            middle = rec.company_id.street[:3].upper() + "/"
+            next = str(ir_sequence.next_by_code('demande.name'))
+            print(",,,,,,,,,,,,,,,,,,,,,,,,,,", next)
+            if len(next) == 3:
+                next = '0' + next
+            elif len(next) == 2:
+                next = '00' + next
+            elif len(next) == 1:
+                next = '000' + next
+            rec.name = base + middle + next
         return True
 
     def action_assign(self):
         for rec in self:
             company_id = rec.company_id
-            get_picking_type = rec.env['stock.picking.type'].search([('company_id', '=', self.env.user.company_id.id),
-                                                                     ('code', '=', 'external'),
-                                                                     ('default_location_dest_id.company_id', '=', company_id.id)
+            print("####################################", company_id.id)
+            get_entrepot_centrale = rec.env['res.company'].search([('entrepot_centrale', '=', True)])
+            print("####################################", get_entrepot_centrale.id, )
+            get_picking_type = self.env['stock.picking.type'].search([('company_id', '=', get_entrepot_centrale.id),
+                                                                     ('code', '=', 'outgoing'),
+                                                                     ('entreprise_de_destination_par_defaut', '=', company_id.id)
                                                                      ])
+            if not get_picking_type:
+                raise UserError(_("Impossible de confirmer la commande. Vous devez cocher l'entreprise de l'entrepôt principal"))
+            print("###########################################", get_picking_type)
             transfert_obj = self.env["stock.picking"]
             pick = {
                 "picking_type_id": get_picking_type[0].id,
                 "location_id": get_picking_type[0].default_location_src_id.id,
-                "location_dest_id": get_picking_type[0].default_location_dest_id.id,
+                "location_dest_id": get_picking_type[0].entreprise_de_destination_par_defaut.partner_id.id,
+                "partner_id": get_picking_type[0].entreprise_de_destination_par_defaut.partner_id.id,
                 "move_ids_without_package": [
                     {
                         'name': rec.name,
                         "location_id": get_picking_type[0].default_location_src_id.id,
-                        "location_dest_id": get_picking_type[0].default_location_dest_id.id,
+                        "location_dest_id": get_picking_type[0].entreprise_de_destination_par_defaut.partner_id.id,
                         'product_id': prod.product_id,
                         'product_uom_qty': prod.quantite,
                         'product_uom': prod.product_uom,
                     } for prod in rec.move_lines
                 ],
                 "scheduled_date": rec.scheduled_date,
-                "origin": rec.origin,
+                "origin": rec.name,
             }
-            transfert_obj.create(pick)
+            transfert_obj = transfert_obj.create(pick)
+            transfert_obj.onchange_partner_id()
+            transfert_obj._onchange_picking_type()
             self.state = 'assigned'
         return True
 

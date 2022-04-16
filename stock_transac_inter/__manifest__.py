@@ -25,10 +25,10 @@
     'data': [
         'security/demande_rea_security.xml',
         'security/ir.model.access.csv',
+        'data/sequences.xml',
         'views/res_company.xml',
         'views/demande_de_rea.xml',
-        # 'views/views.xml',
-        # 'views/templates.xml',
+        'views/stock_picking.xml',
     ],
     # only loaded in demonstration mode
     'demo': [
