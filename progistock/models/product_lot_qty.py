@@ -10,7 +10,12 @@ class ProgisLotQty(models.Model):
 
     stock_id = fields.Many2one(comodel_name="stock.production.lot")
 
+    def find_exp(self, name):
+        lots = self.env['stock.production.lot'].search([])
 
+        for lot in lots:
+            if lot.product_id.name == name:
+                return lot.expiration_date
 
     def send_mail(self, product, qty, exp_date, email):
         mail_obj = self.env['mail.mail']
@@ -34,7 +39,9 @@ class ProgisLotQty(models.Model):
 
         for group in groups:
             for i in group.users:
-                if group.category_id.name == "Stock":
+                if group.category_id.name == "Stock" and group.name == "Administrateur":
+                    email_list.append(i.email)
+                elif group.category_id.name == "Achats" and group.name == "Administrateur":
                     email_list.append(i.email)
                 else:
                     pass
@@ -48,9 +55,8 @@ class ProgisLotQty(models.Model):
 
         for min_prod in  min_prods:
             if min_prod.product_id.qty_available <= min_prod.product_min_qty:
-                print(min_prod.product_id.name,min_prod.product_min_qty)
                 for email in self.email_to():
-                   self.send_mail(min_prod.product_id, min_prod.product_min_qty, self.stock_id.expiration_date, email)
+                    self.send_mail(min_prod.product_id, min_prod.product_min_qty, self.find_exp(min_prod.product_id.name), email)
 
 
             
