@@ -22,22 +22,6 @@ class ProgisLot(models.Model):
         })
         return mail.send()
 
-    def email_to(self):
-
-        groups = self.env['res.groups'].search([])
-        email_list = []
-
-        for group in groups:
-            for i in group.users:
-                if group.category_id.name == "Stock":
-                    email_list.append(i.email)
-                else:
-                    pass
-
-        email_filter = list(set(email_list))
-
-        return email_filter
-
 
     def send_mail_fresh(self, name, product, exp_date, email, qty):
         mail_obj = self.env['mail.mail']
@@ -53,10 +37,30 @@ class ProgisLot(models.Model):
         })
         return mail.send()
 
+    def email_to(self):
+
+        groups = self.env['res.groups'].search([])
+        email_list = []
+
+        for group in groups:
+            for i in group.users:
+                if group.category_id.name == "Stock" and group.name == "Administrateur":
+                    email_list.append(i.email)
+                elif group.category_id.name == "Achats" and group.name == "Administrateur":
+                    email_list.append(i.email)
+                else:
+                    pass
+
+        email_filter = list(set(email_list))
+
+        return email_filter
+
 
     def check_expiry_lot(self):
         today = fields.Datetime.now()
         lots = self.env['stock.production.lot'].search([])
+
+        print(self.email_to())
 
         for lot in lots:
             if lot.alert_date == False or lot.expiration_date == False:
@@ -78,13 +82,3 @@ class ProgisLot(models.Model):
                 elif lot.product_id.categ_id.fresh == True and convert_exp_date == convert_fresh_deadline:
                     for email in self.email_to():
                         self.send_mail_fresh(lot.name, lot.product_id, lot.expiration_date, email, lot.product_qty)
-
-
-
-
-
-
-
-
-
-
