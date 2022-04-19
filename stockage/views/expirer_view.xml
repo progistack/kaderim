@@ -13,6 +13,11 @@
                         <filter name="group_2" string="Cause" domain="[]" context="{'group_by':'cause_exp'}"/>
                         <filter name="group_3" string="Date" domain="[]" context="{'group_by':'date_exp'}"/>
                     </group>
+
+                    <!-- search panel -->
+                    <searchpanel>
+                        <field name="status_bar" string="Etat" icon="fa-list" select="multi" enable_counters="1"/>
+                    </searchpanel>
                 </search>
             </field>
         </record>
@@ -22,16 +27,20 @@
             <field name="name">Article Expiré</field>
             <field name="model">stockage.expirer</field>
             <field name="arch" type="xml">
-                <tree decoration-danger="status_bar == 'retire'">
+                <tree decoration-danger="status_bar == 'retire'" delete="0">
                     <field name="reference" optional="show"/>
                     <field name="date_exp" optional="show"/>
-                    <field name="company_id" optional="show"/>
-                    <field name="entrepot_id" optional="show"/>
+                    <field name="company_id" optional="hide"/>
+                    <field name="entrepot_id" optional="hide"/>
                     <field name="article_exp" optional="show"/>
                     <field name="cause_exp" optional="show"/>
                     <field name="quantite_exp" sum="Total d'articles expirés" optional="show"/>
-                    <field name="status_bar" decoration-danger="status_bar == 'retire'"
-                           decoration-info="status_bar == 'attente'" widget="badge" optional="show"/>
+                    <field name="status_bar"
+                           decoration-danger="status_bar == 'retire'"
+                           decoration-muted="status_bar == 'annule'"
+                           decoration-info="status_bar == 'attente'"
+                           widget="badge" optional="show"
+                    />
                 </tree>
             </field>
         </record>
@@ -44,11 +53,17 @@
             <field name="arch" type="xml">
                 <form edit="false">
                     <header>
-                        <button name="message_succes" type="object" string="Confirmé" class="oe_highlight"
+                        <button name="action_succes" type="object" string="Confirmé" class="oe_highlight"
                                 attrs="{'invisible':[('status', '!=',True)]}"
                                 confirm="Etes-vous sure de vouloir retirer cet article de stock ?"
                         />
-                        <field name="status_bar" widget="statusbar"/>
+                        <button name="action_annule" type="object" string="Annulé" class="btn-secondary"
+                                attrs="{'invisible':[('status', '!=',True)]}"
+                        />
+                        <button name="action_attente" type="object" string="Mise en attente" class="btn-secondary"
+                                attrs="{'invisible':[('status_bar', '!=','annule')]}"
+                        />
+                        <field name="status_bar" widget="statusbar" statusbar_visible="attente,retire"/>
                     </header>
                     <sheet>
                         <div class="oe_title">

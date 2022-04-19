@@ -13,7 +13,7 @@ class StockExpirer(models.Model):
     cause_exp = fields.Char(string='Motif')
     date_exp = fields.Datetime(string='Date', default=fields.Datetime.now)
     status = fields.Boolean(string="Status", default=False)
-    status_bar = fields.Selection([('attente', 'En attente'), ('retire', 'Retiré du stock')], string='Etat',
+    status_bar = fields.Selection([('attente', 'En attente'), ('retire', 'Retiré du stock'), ('annule', 'Annulé')], string='Etat',
                                   default='attente')
     reference = fields.Char(string='Référence', required=True, copy=False, readonly=True, index=True,
                             default=lambda self: _('New'))
@@ -26,8 +26,18 @@ class StockExpirer(models.Model):
             result.append((article.id, name))
         return result
 
+    # annulation de l'expiration
+    def action_annule(self):
+        self.status_bar = 'annule'
+        self.status = False
+
+    # mise en attente
+    def action_attente(self):
+        self.status_bar = 'attente'
+        self.status = True
+
     # decremente l'article et cree une ligne de mouvement de stock
-    def message_succes(self):
+    def action_succes(self):
         recherche_entrepot_id = self.env['stock.warehouse'].search([
             ('id', '=', self.entrepot_id.id),
             ('company_id', '=', self.company_id.id)
@@ -43,9 +53,6 @@ class StockExpirer(models.Model):
             for i in recherche_artcle:
                 if i.product_id.id == self.article_exp.id:
 
-                    # décrémentation de la quantité en stock
-                    i.quantity -= self.quantite_exp
-
                     # création de mouvement de stock
                     record = self.env['stock.move'].create({
                         'name': f"Perte N°{self.reference} : {self.cause_exp}",
@@ -58,8 +65,29 @@ class StockExpirer(models.Model):
                         'state': 'done',
                         'reference': f"Perte N°{self.reference} : {self.cause_exp}"
                     })
-        self.status_bar = 'retire'
-        self.status = False
+
+                    # création de mouvement de produit + decrementation
+                    recherche_mouvement_stock = self.env['stock.move'].search([
+                        ('product_id', '=', self.article_exp.id),
+                        ('company_id', '=', self.company_id.id),
+                        ('location_id', '=', recherche_entrepot_id.lot_stock_id.id),
+                        ('name', '=', f"Perte N°{self.reference} : {self.cause_exp}"),
+                        ('product_uom_qty', '=', float(self.quantite_exp))
+                    ], limit=1)
+
+                    records = self.env['stock.move.line'].create({
+                        'move_id': recherche_mouvement_stock.id,
+                        'company_id': self.company_id.id,
+                        'product_id': self.article_exp.id,
+                        'product_uom_id': 1,
+                        'qty_done': float(self.quantite_exp),
+                        'location_id': recherche_entrepot_id.lot_stock_id.id,
+                        'location_dest_id': 14,
+                        'reference': f"Perte N°{self.reference} : {self.cause_exp}"
+
+                    })
+            self.status_bar = 'retire'
+            self.status = False
 
     # Recupère les entrepots rattacher a une compagnie
     @api.onchange('company_id')
