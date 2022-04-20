@@ -72,24 +72,17 @@ class Picking(models.Model):
     def action_confirm(self):
 
         self._check_company()
-        print("**************************************")
         self.mapped('package_level_ids').filtered(lambda pl: pl.state == 'draft' and not pl.move_ids)._generate_moves()
-        print('+++++++++++++++++++++++++++++++++++++++++++++')
         # call `_action_confirm` on every draft move
         print(self.picking_type_id.code, self.picking_type_id.entreprise_de_destination_par_defaut)
         if self.picking_type_id.code == 'outgoing' and self.picking_type_id.entreprise_de_destination_par_defaut:
-            print("##########################################")
             for rec in self:
-                print("##########################################")
                 company_id = rec.company_id
-                print("##########################################")
                 get_picking_type = request.env['stock.picking.type'].search(
                     [('company_id', '=', rec.picking_type_id.entreprise_de_destination_par_defaut.id),
                      ('code', '=', 'incoming'),
                      ('name', '=', 'Réceptions'),
                      ])
-                print("##########################################")
-                print(get_picking_type)
                 incomming_obj = self.env["stock.picking"]
                 pick = {
                     "picking_type_id": get_picking_type[0].id,

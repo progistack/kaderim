@@ -152,20 +152,10 @@ class Demande(models.Model):
         for rec in self:
             company_id = rec.company_id
             get_entrepot_centrale = rec.env['res.company'].search([('entrepot_centrale', '=', True)])
-            print("###########################################################")
-            print("***********************************************************")
-            print(get_entrepot_centrale.name)
-            print("###########################################################")
-            print("***********************************************************")
             get_picking_type = request.env['stock.picking.type'].search([('company_id', '=', get_entrepot_centrale.id),
                                                                      ('code', '=', 'outgoing'),
                                                                      ('entreprise_de_destination_par_defaut', '=', company_id.id)
                                                                      ])
-            print("###########################################################")
-            print("***********************************************************")
-            print(get_picking_type)
-            print("###########################################################")
-            print("***********************************************************")
             if not get_picking_type:
                 raise UserError(_("Impossible de confirmer la commande. Vous devez cocher l'entreprise de l'entrepôt principal"))
             transfert_obj = self.env["stock.picking"]
