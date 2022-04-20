@@ -1,19 +1,8 @@
+from odoo.http import request
 from odoo import SUPERUSER_ID, _, api, fields, models
-import json
-import time
-from ast import literal_eval
-from datetime import date, timedelta
-from itertools import groupby
-from operator import attrgetter, itemgetter
-from collections import defaultdict
-
-from odoo import SUPERUSER_ID, _, api, fields, models
-from odoo.addons.stock.models.stock_move import PROCUREMENT_PRIORITIES
 from odoo.exceptions import UserError
-from odoo.osv import expression
-from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT, format_datetime
-from odoo.tools.float_utils import float_compare, float_is_zero, float_round
-from odoo.tools.misc import format_date
+from odoo.tools.float_utils import float_compare, float_is_zero
+
 
 class PickingType(models.Model):
     _inherit = "stock.picking.type"
@@ -94,7 +83,7 @@ class Picking(models.Model):
                 print("##########################################")
                 company_id = rec.company_id
                 print("##########################################")
-                get_picking_type = rec.env['stock.picking.type'].search(
+                get_picking_type = request.env['stock.picking.type'].search(
                     [('company_id', '=', rec.picking_type_id.entreprise_de_destination_par_defaut.id),
                      ('code', '=', 'incoming'),
                      ('name', '=', 'Réceptions'),
@@ -180,6 +169,11 @@ class Picking(models.Model):
                 message += _('Transfers %s: Please add some items to move.') % ', '.join(pickings_without_moves.mapped('name'))
             if pickings_without_quantities:
                 message += _('\n\nTransfers %s: You cannot validate these transfers if no quantities are reserved nor done. To force these transfers, switch in edit more and encode the done quantities.') % ', '.join(pickings_without_quantities.mapped('name'))
+            if self.env.company.entrepot_centrale:
+                if pickings_without_lots:
+                    message += _('\n\nTransfers %s: You need to supply a Lot/Serial number for products %s.') % (
+                    ', '.join(pickings_without_lots.mapped('name')),
+                    ', '.join(products_without_lots.mapped('display_name')))
             if message:
                 raise UserError(message.lstrip())
 

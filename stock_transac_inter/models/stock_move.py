@@ -28,11 +28,13 @@ class StockMove(models.Model):
         check_company=False,
         help="Location where the system will stock the finished products.")
 
-
     @api.depends('product_id', 'product_uom_qty')
     def _compute_incoming_qty(self):
         for move in self:
-            move.incoming_qty = move.quantite_en_stock + move.product_uom_qty
+            if move.picking_type_id.code == 'outgoing':
+                move.incoming_qty = move.quantite_en_stock - move.product_uom_qty
+            else:
+                move.incoming_qty = move.quantite_en_stock + move.product_uom_qty
 
     @api.depends('product_id', 'product_uom_qty')
     def _compte_total_ttc(self):
