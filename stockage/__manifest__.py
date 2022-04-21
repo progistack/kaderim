@@ -2,8 +2,10 @@
 {
     'name': "Stock personnalisé",
     'summary': """
+    Gestion des casses
     """,
     'description': """
+    Gestion des casses
     """,
     'author': "Tano Martin",
     'sequence': -100,
@@ -19,9 +21,11 @@
         'security/ir.model.access.csv',
         'data/reference_cas.xml',
         'data/reference_exp.xml',
+        'views/menu.xml',
         'views/casser_view.xml',
         'views/expirer_view.xml',
 
     ],
     'demo': [],
+    'license': 'LGPL-3',
 }

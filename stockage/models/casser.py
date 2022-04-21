@@ -17,7 +17,7 @@ class StockCasser(models.Model):
                                   default='attente')
     reference = fields.Char(string='Référence', required=True, copy=False, readonly=True, index=True,
                             default=lambda self: _('New'))
-    nom_compagnie = fields.Char(string="Compagnie", default=lambda self: self.env.company.name)
+    nom_compagnie = fields.Char(string="Entreprise", default=lambda self: self.env.company.name)
 
     def name_get(self):
         result = []
@@ -28,66 +28,69 @@ class StockCasser(models.Model):
 
     # annulation de l'expiration
     def action_annule(self):
-        self.status_bar = 'annule'
-        self.status = False
+        for rec in self:
+            rec.status_bar = 'annule'
+            rec.status = False
 
     # mise en attente
     def action_attente(self):
-        self.status_bar = 'attente'
-        self.status = True
+        for rec in self:
+            rec.status_bar = 'attente'
+            rec.status = True
 
     # decremente l'article et cree une ligne de mouvement de stock
     def action_succes(self):
-        recherche_entrepot_id = self.env['stock.warehouse'].search([
-            ('id', '=', self.entrepot_id.id),
-            ('company_id', '=', self.company_id.id)
-        ], limit=1)
+        for rec in self:
+            recherche_entrepot_id = rec.env['stock.warehouse'].search([
+                ('id', '=', rec.entrepot_id.id),
+                ('company_id', '=', rec.company_id.id)
+            ], limit=1)
 
-        recherche_artcle = self.env['stock.quant'].search([
-            ('product_id', '=', self.article_cas.id),
-            ('company_id', '=', self.company_id.id),
-            ('location_id', '=', recherche_entrepot_id.lot_stock_id.id)
-        ], limit=1)
+            recherche_artcle = rec.env['stock.quant'].search([
+                ('product_id', '=', rec.article_cas.id),
+                ('company_id', '=', rec.company_id.id),
+                ('location_id', '=', recherche_entrepot_id.lot_stock_id.id)
+            ], limit=1)
 
-        if len(recherche_artcle) != 0:
-            for i in recherche_artcle:
-                if i.product_id.id == self.article_cas.id:
+            if len(recherche_artcle) != 0:
+                for i in recherche_artcle:
+                    if i.product_id.id == rec.article_cas.id:
 
-                    # création de mouvement de stock
-                    record = self.env['stock.move'].create({
-                        'name': f"Perte N°{self.reference} : {self.cause_cas}",
-                        'company_id': self.company_id.id,
-                        'product_id': self.article_cas.id,
-                        'product_uom_qty': float(self.quantite_cas),
-                        'location_id': recherche_entrepot_id.lot_stock_id.id,
-                        'location_dest_id': 14,
-                        'product_uom': 1,
-                        'state': 'done',
-                        'reference': f"Perte N°{self.reference} : {self.cause_cas}"
-                    })
+                        # création de mouvement de stock
+                        record = rec.env['stock.move'].create({
+                            'name': f"Perte N°{rec.reference} : {rec.cause_cas}",
+                            'company_id': rec.company_id.id,
+                            'product_id': rec.article_cas.id,
+                            'product_uom_qty': float(rec.quantite_cas),
+                            'location_id': recherche_entrepot_id.lot_stock_id.id,
+                            'location_dest_id': 14,
+                            'product_uom': 1,
+                            'state': 'done',
+                            'reference': f"Perte N°{rec.reference} : {rec.cause_cas}"
+                        })
 
                     # création de mouvement de produit + decrementation
-                    recherche_mouvement_stock = self.env['stock.move'].search([
-                        ('product_id', '=', self.article_cas.id),
-                        ('company_id', '=', self.company_id.id),
+                    recherche_mouvement_stock = rec.env['stock.move'].search([
+                        ('product_id', '=', rec.article_cas.id),
+                        ('company_id', '=', rec.company_id.id),
                         ('location_id', '=', recherche_entrepot_id.lot_stock_id.id),
-                        ('name', '=', f"Perte N°{self.reference} : {self.cause_cas}"),
-                        ('product_uom_qty', '=', float(self.quantite_cas))
+                        ('name', '=', f"Perte N°{rec.reference} : {rec.cause_cas}"),
+                        ('product_uom_qty', '=', float(rec.quantite_cas))
                     ], limit=1)
 
-                    records = self.env['stock.move.line'].create({
+                    records = rec.env['stock.move.line'].create({
                         'move_id': recherche_mouvement_stock.id,
-                        'company_id': self.company_id.id,
-                        'product_id': self.article_cas.id,
+                        'company_id': rec.company_id.id,
+                        'product_id': rec.article_cas.id,
                         'product_uom_id': 1,
-                        'qty_done': float(self.quantite_cas),
+                        'qty_done': float(rec.quantite_cas),
                         'location_id': recherche_entrepot_id.lot_stock_id.id,
                         'location_dest_id': 14,
-                        'reference': f"Perte N°{self.reference} : {self.cause_cas}"
+                        'reference': f"Perte N°{rec.reference} : {rec.cause_cas}"
 
                     })
-            self.status_bar = 'retire'
-            self.status = False
+            rec.status_bar = 'retire'
+            rec.status = False
 
     # Recupère les entrepots rattacher a une compagnie
     @api.onchange('company_id')

@@ -91,7 +91,7 @@
                         </group>
                         <div style="display:flex; align-items:center; justify-content: center; margin-top: 20px;">
                             <h1>
-                                <span style="color:#71639e;">Compagnie :</span>
+                                <span style="color:#71639e;">Compagnie : </span>
                                 <field name="nom_compagnie" readonly="1"/>
                             </h1>
                         </div>
@@ -106,12 +106,6 @@
             <field name="res_model">stockage.casser</field>
             <field name="view_mode">tree,form</field>
         </record>
-
-
-        <menuitem id="menu_casser"
-                  name="Cassé"
-                  parent="stockage.menu_casse_expire"
-                  action="casser_action_window"/>
 
     </data>
 </odoo>
