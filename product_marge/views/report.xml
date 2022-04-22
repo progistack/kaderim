@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+      <!-- Détail marge -->
+    <record id="detail_marge_report" model="ir.actions.report">
+        <field name="name">Détail marge vente</field>
+        <field name="model">marge.detail.wizard</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">product_marge.details_marge_report_template</field>
+        <field name="report_file">product_marge.details_marge_report_template</field>
+        <field name="print_report_name">'Détails Marges - %s' % (object.name)</field>
+        <field name="binding_model_id" ref="model_marge_detail_wizard"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>
