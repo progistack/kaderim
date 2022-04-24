@@ -27,18 +27,21 @@ class DemandeMoveLine(models.Model):
     product_code = fields.Char(
         related='product_id.code',
         readonly=True)
-    product_pdv = fields.Float('PDU TTC',
+    product_pdv = fields.Float('PDV TTC',
         related='product_id.list_price',
         readonly=True)
     prix_total = fields.Float('TOTAL TTC', compute="_compte_total_ttc")
     quantite = fields.Float(
-        'Nombre de Colis', default=0.0, required=True, copy=False)
+        'NB de Colis', default=0.0,
+        required=True, copy=False)
     qtc_totale = fields.Float(
         'QTE TOTALE', compute="_compte_total")
     qty_done = fields.Float('Done', default=0.0, digits='Product Unit of Measure', copy=False)
     product_uom = fields.Many2one('uom.uom', "Unité de Mesure", related='product_id.uom_po_id',  readonly=True)
-    quantite_en_stock = fields.Float(string="PCB en stock", compute='_compute_quantite_en_stock', readonly=True)
-    incoming_qty = fields.Float('PCB Avenir', index=True, compute='_compute_incoming_qty', readonly=True)
+    quantite_en_stock_pcb = fields.Float(string="Quantité (PCB) en stock", compute='_compute_quantite_en_stock_pcb', readonly=True)
+    quantite_en_stock = fields.Float(string="Quantité en stock", compute='_compute_quantite_en_stock', readonly=True)
+    incoming_qty_pcb = fields.Float('Stock (PCB) Prévisionnel', index=True, compute='_compute_incoming_qty_pcb', readonly=True)
+    incoming_qty = fields.Float('Stock Prévisionnel', index=True, compute='_compute_incoming_qty', readonly=True)
     product_uom_category_id = fields.Many2one(related='product_id.uom_id.category_id', readonly=True)
     date = fields.Datetime('Date', default=fields.Datetime.now, required=True)
     reference = fields.Char(related='demande_id.name', store=True, related_sudo=False, readonly=False)
@@ -49,22 +52,34 @@ class DemandeMoveLine(models.Model):
         store=True,
         default=lambda s: s.env.company.id, index=True)
 
+    @api.constrains('product_id', 'quantite', 'product_uom')
+    def _compute_incoming_qty_pcb(self):
+        for move in self:
+            move.incoming_qty_pcb = round(move.quantite_en_stock / move.product_uom.factor_inv, 2) + move.quantite
+
+
     @api.depends('product_id', 'quantite')
     def _compute_incoming_qty(self):
         for move in self:
-            move.incoming_qty = move.quantite_en_stock + move.quantite
+            move.incoming_qty = move.quantite_en_stock + move.qtc_totale
 
     @api.depends('product_id', 'quantite')
     def _compte_total_ttc(self):
         for move in self:
             move.prix_total = move.qtc_totale * move.product_pdv
 
-    @api.depends('product_id', 'quantite')
+    @api.depends('product_id', 'quantite', 'product_uom')
     def _compte_total(self):
         for move in self:
             move.qtc_totale = move.quantite * move.product_uom.factor_inv
 
-    @api.depends('product_id')
+    @api.constrains('product_id', 'product_uom')
+    def _compute_quantite_en_stock_pcb(self):
+        for move in self:
+                product = self.env['product.product'].search([('id', '=', move.product_id.id)])
+                move.quantite_en_stock_pcb = round(product.qty_available / move.product_uom.factor_inv, 2)
+
+    @api.depends('product_id', 'product_uom')
     def _compute_quantite_en_stock(self):
         for move in self:
             product = self.env['product.product'].search([('id', '=', move.product_id.id)])
@@ -78,6 +93,7 @@ class DemandeMoveLine(models.Model):
 
 class Demande(models.Model):
     _name = "stock.demande"
+    _inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin', 'sequence.mixin']
 
     name = fields.Char(
         'Reference',
@@ -85,24 +101,17 @@ class Demande(models.Model):
         readonly=True)
     note = fields.Html('Notes')
     state = fields.Selection([
-        ('draft', 'Draft'),
-        ('confirmed', 'Waiting'),
+        ('draft', 'Brouillon'),
+        ('confirmed', 'En attente de validation'),
         ('validate', 'Validé'),
-        ('assigned', 'Ready'),
-        ('done', 'Done'),
-        ('cancel', 'Cancelled'),
-    ], string='Status', default='draft', copy=False, index=True, store=True,
-        help=" * Draft: The transfer is not confirmed yet. Reservation doesn't apply.\n"
-             " * Waiting another operation: This transfer is waiting for another operation before being ready.\n"
-             " * Waiting: The transfer is waiting for the availability of some products.\n(a) The shipping policy is \"As soon as possible\": no product could be reserved.\n(b) The shipping policy is \"When all products are ready\": not all the products could be reserved.\n"
-             " * Ready: The transfer is ready to be processed.\n(a) The shipping policy is \"As soon as possible\": at least one product has been reserved.\n(b) The shipping policy is \"When all products are ready\": all product have been reserved.\n"
-             " * Done: The transfer has been processed.\n"
-             " * Cancelled: The transfer has been cancelled.")
+        ('cancel', 'Annulée'),
+    ], string='Status', default='draft', copy=False, index=True, store=True)
     priority = fields.Selection(
         PROCUREMENT_PRIORITIES, string='Priority', default='0',
         help="Products will be reserved first for the transfers with the highest priorities.")
     scheduled_date = fields.Datetime(
-        'Scheduled Date', store=True,
+        'Date de commande', store=True,
+        track_visibility="onchange",
         index=True, default=fields.Datetime.now,
         states={'done': [('readonly', True)], 'cancel': [('readonly', True)]},
         help="Scheduled time for the first part of the shipment to be processed. Setting manually a value here would set it as expected date for all the stock moves.")
@@ -127,10 +136,26 @@ class Demande(models.Model):
         domain=lambda self: [('groups_id', 'in', self.env.ref('stock.group_stock_user').id)],
         states={'done': [('readonly', True)], 'cancel': [('readonly', True)]},
         default=lambda self: self.env.user)
-    move_lines = fields.One2many('demande.move.line', 'demande_id', string="Stock Moves")
+    move_lines = fields.One2many('demande.move.line', 'demande_id',
+                                 string="Stock Moves")
+    commandes = fields.Text(track_visibility="onchange", default="")
+
+    def write(self, vals):
+        super(Demande, self).write(vals)
+        vals['commandes'] = self._get_commande()
+        vals['move_lines'] = []
+        super(Demande, self).write(vals)
+
+    def _get_commande(self):
+        commandes = [
+            str(i.quantite) + ' packs de ' + str(i.product_id.name) + '\n\n'
+            for i in self.move_lines
+        ]
+        print("#################################################################", commandes)
+        return commandes
 
     def action_confirm(self):
-        self.state = 'validate'
+        self.state = 'confirmed'
         base = "BC/"
         ir_sequence = self.env['ir.sequence']
         for rec in self:
@@ -148,16 +173,23 @@ class Demande(models.Model):
             rec.name = base + middle + next
         return True
 
-    def action_assign(self):
+    def action_cancel(self):
+        self.state = 'cancel'
+        return True
+
+    def button_validate(self):
+        self.state = 'validate'
         for rec in self:
             company_id = rec.company_id
             get_entrepot_centrale = rec.env['res.company'].search([('entrepot_centrale', '=', True)])
             get_picking_type = request.env['stock.picking.type'].search([('company_id', '=', get_entrepot_centrale.id),
-                                                                     ('code', '=', 'outgoing'),
-                                                                     ('entreprise_de_destination_par_defaut', '=', company_id.id)
-                                                                     ])
+                                                                         ('code', '=', 'outgoing'),
+                                                                         ('entreprise_de_destination_par_defaut', '=',
+                                                                          company_id.id)
+                                                                         ])
             if not get_picking_type:
-                raise UserError(_("Impossible de confirmer la commande. Vous devez cocher l'entreprise de l'entrepôt principal"))
+                raise UserError(
+                    _("Impossible de confirmer la commande. Vous devez cocher l'entreprise de l'entrepôt principal"))
             transfert_obj = self.env["stock.picking"]
             pick = {
                 "picking_type_id": get_picking_type[0].id,
@@ -180,17 +212,4 @@ class Demande(models.Model):
             transfert_obj = transfert_obj.create(pick)
             transfert_obj.onchange_partner_id()
             transfert_obj._onchange_picking_type()
-            self.state = 'assigned'
-        return True
-
-    def action_cancel(self):
-        self.state = 'cancel'
-        return True
-
-    def button_validate(self):
-        self.state = 'validate'
-        return True
-
-    def action_done(self):
-        self.state = 'done'
         return True
