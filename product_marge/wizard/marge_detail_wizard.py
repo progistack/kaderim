@@ -5,8 +5,8 @@ class MargeDetailWizard(models.TransientModel):
     _name = "marge.detail.wizard"
     _description = "Marge Detail Wizard"
 
-    start_date = fields.Datetime(required=True, default=fields.Datetime.now)
-    end_date = fields.Datetime(string="Date de fin", default=fields.Datetime.now)
+    start_date = fields.Datetime(string="Date de début", required=True, default=fields.Datetime.now)
+    end_date = fields.Datetime(string="Date de fin", required=True, default=fields.Datetime.now)
     pos_config_ids = fields.Many2many('pos.config', 'report_detail_marge',
                                       default=lambda s: s.env['pos.config'].search([]))
 
@@ -21,7 +21,5 @@ class MargeDetailWizard(models.TransientModel):
             self.start_date = self.end_date
 
     def generate_report(self):
-        data = {'date_start': self.start_date, 'date_stop': self.end_date, 'config_ids': self.pos_config_ids.ids}
-
+        data = {'start_date': self.start_date, 'end_date': self.end_date, 'config_ids': self.pos_config_ids.ids}
         return self.env.ref('product_marge.detail_marge_report').report_action([], data=data)
-        # return self.env.ref('product_marge.detail_marge_report').report_action(self)

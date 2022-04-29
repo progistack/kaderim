@@ -1,26 +1,26 @@
 <odoo>
 
-  <record id="inherited_view_pos_order_form" model="ir.ui.view">
+    <record id="inherited_view_pos_order_form" model="ir.ui.view">
         <field name="name">inherited.pos.order.form</field>
         <field name="model">pos.order</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
         <field name="arch" type="xml">
-          <xpath expr="//page[@name='products']//field[@name='lines']//tree" position="inside">
-              <field name="unit_marge" string="MU"/>
-          </xpath>
+            <xpath expr="//page[@name='products']//field[@name='lines']//tree" position="inside">
+                <field name="unit_marge" string="MU"/>
+            </xpath>
         </field>
-  </record>
+    </record>
 
     <record id="inherited_view_pos_order_tree" model="ir.ui.view">
         <field name="name">inherited.pos.order.tree</field>
         <field name="model">pos.order</field>
         <field name="inherit_id" ref="point_of_sale.view_pos_order_tree"/>
         <field name="arch" type="xml">
-          <xpath expr="//field[@name='amount_total']" position="before">
-              <field name="marge_command" sum="Marge commande" widget="monetary" decoration-bf="1"/>
-              <field name="total_marge" sum="Marge total" widget="monetary" invisible="1" decoration-bf="1"/>
-
-          </xpath>
+            <xpath expr="//field[@name='amount_total']" position="before">
+                <field name="marge_command" sum="Marge commande" widget="monetary" decoration-bf="1"/>
+                <field name="total_marge" sum="Marge total" widget="monetary" invisible="1" decoration-bf="1"/>
+            </xpath>
         </field>
-  </record>
+    </record>
+
 </odoo>
